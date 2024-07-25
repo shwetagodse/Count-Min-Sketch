@@ -1,0 +1,270 @@
+import hashlib
+import numpy as np
+from typing import List
+import math
+import matplotlib.pyplot as plt
+
+
+class CountMinSketch:
+    def __init__(self):
+        # The value of self.cols is calculated from ln(1/delta), where delta represents probability of accuracy
+        self.cols = 25
+        self.cols1 = 24
+        self.cols2 = 22
+        # The value of self.rows is calculated from (e/epsilon), where e is oiler's constant=2.71 and epsilon is upper bound 
+        # scaling factor.
+        self.rows = 4
+        self.rows1 = 3 
+        self.h1 = lambda x: hashlib.md5(x).hexdigest()
+        self.h2 = lambda x: hashlib.sha1(x).hexdigest()
+        self.h3 = lambda x: hashlib.sha256(x).hexdigest()
+        self.h4 = lambda x: hashlib.sha512(x).hexdigest()
+        self.hash_funcs = [self.h1, self.h2, self.h3, self.h4]
+        self.hash_funcs1 = [self.h1, self.h2, self.h3]        
+
+        self.matrix = [[0] * self.cols for _ in range(self.rows)]
+        self.matrix1 = [[0] * self.cols1 for _ in range(self.rows1)]
+        self.matrix2= [[0] * self.cols2 for _ in range(self.rows)]
+
+    def __get_hashes(self, c: str) -> List[int]:
+        hash_results = []
+        for func in self.hash_funcs:
+            # Generate hash value from each hash function as string
+            hash_result = func(c.encode())
+            #print('hr: ',int(hash_result,16)% 25)
+            # Convert it into number and divide by columns size
+            hash_results.append(int(hash_result, 16) % 25)
+            
+        return hash_results
+    
+    def __get_hashes1(self, c: str) -> List[int]:            
+        hash_results1 = []
+        for func in self.hash_funcs1:
+            # Generate hash value from each hash function as string
+            hash_result1 = func(c.encode())
+            #print('hr: ',int(hash_result,16)% 24 )
+            # Convert it into number and divide by columns size
+            hash_results1.append(int(hash_result1, 16) % 24)            
+        return hash_results1
+    
+    def __get_hashes2(self, c: str) -> List[int]:            
+        hash_results2 = []
+        for func in self.hash_funcs:
+            # Generate hash value from each hash function as string
+            hash_result2 = func(c.encode())
+            #print('hr: ',int(hash_result,16)% 22 )
+            # Convert it into number and divide by columns size
+            hash_results2.append(int(hash_result2, 16) % 22)            
+        return hash_results2
+
+    def process_element(self, c: str) -> None:
+        hash_results = self.__get_hashes(c)
+        hash_results1 = self.__get_hashes1(c)
+        hash_results2 = self.__get_hashes2(c)
+
+        #print(hash_results)
+        # Update count values in the matrix
+        for i, val in enumerate(hash_results):
+            self.matrix[i][val] += 1
+            #print('Self Matrix: ',self.matrix[i][val])
+            
+        # Update count values in the matrix
+        for i, val in enumerate(hash_results1):
+            self.matrix1[i][val] += 1 
+            
+        # Update count values in the matrix
+        for i, val in enumerate(hash_results2):
+            self.matrix2[i][val] += 1 
+
+    def get_freq(self, c: str) -> int:
+        hash_results = self.__get_hashes(c)
+        #print('hr: ',hash_results)
+        freqs = []
+        # Find frequence value for each hash function
+        for i, val in enumerate(hash_results):
+            freqs.append(self.matrix[i][val])
+            #print('freqs: ',freqs)
+        return min(freqs)
+    
+    def get_freq1(self, c: str) -> int:
+        hash_results1 = self.__get_hashes1(c)
+        #print('hr: ',hash_results)
+        freqs1 = []
+        # Find frequence value for each hash function
+        for i, val in enumerate(hash_results1):
+            freqs1.append(self.matrix1[i][val])
+            #print('freqs1: ',freqs1)
+        return min(freqs1)
+    
+    def get_freq2(self, c: str) -> int:
+        hash_results2 = self.__get_hashes2(c)
+        #print('hr: ',hash_results)
+        freqs2 = []
+        # Find frequence value for each hash function
+        for i, val in enumerate(hash_results2):
+            freqs2.append(self.matrix2[i][val])
+            #print('freqs2: ',freqs2)
+        return min(freqs2)
+
+Sum= 0
+Sum1 = 0
+Sum2 = 0
+
+# Transaction data is stored in txt file
+f1=open("data.txt","r+")
+input=f1.read()
+input=input.replace(' ',',')
+input=input.replace('\n','')
+f2=open("file1.txt","w+")
+f2.write(input)
+f1.close()
+f2.close()
+
+my_file = open("file1.txt", "r")
+content = my_file.read()
+content_list = content.split(",")
+my_file.close()
+
+input = content_list[:1010100]
+    
+cms = CountMinSketch()
+#print(cms)
+# Assume the last element of the list in the start of the data stream
+for i in content_list[:100000]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[:100000].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+    
+    
+for i in content_list[100000:200000]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[100000:200000].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+
+for i in content_list[200000:300000]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[200000:300000].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+    
+for i in content_list[300000:400000]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[300000:400000].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+    
+for i in content_list[400000:500000]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[400000:500000].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+    
+for i in content_list[500000:600000]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[500000:600000].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+    
+for i in content_list[600000:700000]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[600000:700000].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+    
+for i in content_list[700000:800000]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[700000:800000].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+    
+for i in content_list[800000:900000]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[800000:900000].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+    
+for i in content_list[900000:1010100]:
+    while len(input) > 0:
+        c = input.pop()
+        cms.process_element(c)
+    count = cms.get_freq(i)
+    count1 = cms.get_freq1(i)    
+    count2 = cms.get_freq2(i)
+    actual_count = content_list[900000:1010100].count(i)
+    Sum = Sum + (count - actual_count)**2
+    Sum1 = Sum1 + (count1 - actual_count)**2
+    Sum2 = Sum2 + (count2 - actual_count)**2
+    
+# RMSE value is calculated
+rmse = math.sqrt(Sum/1010100)
+rmse1 = math.sqrt(Sum1/1010100)
+rmse2 = math.sqrt(Sum2/1010100)
+
+print('rmse: ',rmse)
+print('rmse1: ',rmse1)
+print('rmse2: ',rmse2)
+
+# Plots for RMSE value calculated with Sketch Dimension
+plt.plot(100, rmse, marker='x', markersize=15,label='RMSE Plot for (25,4)')
+plt.plot(72, rmse1, marker='x', markersize=15,label='RMSE Plot for (24,3)')
+plt.plot(88, rmse2, marker='x', markersize=15,label='RMSE Plot for (22,4)')
+plt.xlabel('Sketch Dimension')
+plt.ylabel('RMSE VALUE')
+plt.legend()
+plt.show()
