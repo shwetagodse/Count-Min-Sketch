@@ -6,4 +6,4 @@ count sketch algorithm for the task.
 Then, validate the algorithm on the transaction dataset T10I4D100K (or any other dataset of similar scale). You can use the RMSE metric for evaluation  
 -- square of the difference between the actual frequency of the item and its estimation from Count Min Sketch, sum it for all the query items, and compute
 the square root of the result. Plot the RMSE for various values of the sketch dimension -- X axis should contain the sketch dimension and Y axis should 
-contain the RMSE value. 
+contain the RMSE value.. 
